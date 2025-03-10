@@ -79,7 +79,7 @@ SafaiSetu offers a mobile platform that:
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/<your-username>/SafaiSetu.git
+    git clone https://github.com/akhi-543/SafaiSetu.git
     ```
 2.  **Install Dependencies:**
      * Flutter SDK.
