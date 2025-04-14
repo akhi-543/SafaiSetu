@@ -1,65 +1,32 @@
-import { useState, useEffect } from 'react';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../config/firebase';
-import { useAuth } from '../contexts/AuthContext';
-import { User, MapPin } from 'lucide-react';
+import { useState } from 'react';
+import { User, MapPin, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+import { useUserProfile } from '../hooks/useUserProfile';
 
 export const ProfilePage = () => {
-  const [address, setAddress] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState({ type: '', text: '' });
   const { currentUser } = useAuth();
-
-  useEffect(() => {
-    fetchUserAddress();
-  }, [currentUser]);
-
-  const fetchUserAddress = async () => {
-    if (!currentUser) return;
-
-    try {
-      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-      if (userDoc.exists() && userDoc.data().address) {
-        setAddress(userDoc.data().address);
-      }
-    } catch (error) {
-      console.error('Error fetching address:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { profile, isLoading, isSaving, updateProfile } = useUserProfile(currentUser?.uid);
+  const [address, setAddress] = useState('');
 
   const handleSaveAddress = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser) return;
+    if (!address.trim()) return;
 
     try {
-      await setDoc(doc(db, 'users', currentUser.uid), {
-        address,
-        email: currentUser.email,
-        updatedAt: new Date()
-      }, { merge: true });
-
-      setMessage({
-        type: 'success',
-        text: 'Address saved successfully!'
-      });
-
-      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      await updateProfile({ address });
     } catch (error) {
-      console.error('Error saving address:', error);
-      setMessage({
-        type: 'error',
-        text: 'Failed to save address. Please try again.'
-      });
+      // Error is handled by the hook
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+        <div className="flex flex-col items-center">
+          <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
+          <p className="mt-4 text-gray-600">Loading profile...</p>
+        </div>
       </div>
     );
   }
@@ -69,10 +36,10 @@ export const ProfilePage = () => {
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center">
-              <User className="w-8 h-8 text-green-600 mr-3" />
-              <h1 className="text-2xl font-bold text-gray-800">My Profile</h1>
-            </div>
+            <h1 className="text-2xl font-bold text-gray-800 flex items-center">
+              <User className="w-6 h-6 mr-2 text-green-600" />
+              My Profile
+            </h1>
             <Link
               to="/dashboard"
               className="text-green-600 hover:text-green-700"
@@ -107,23 +74,19 @@ export const ProfilePage = () => {
               />
             </div>
 
-            {message.text && (
-              <div
-                className={`p-3 rounded ${
-                  message.type === 'success'
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-red-100 text-red-700'
-                }`}
-              >
-                {message.text}
-              </div>
-            )}
-
             <button
               type="submit"
-              className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition duration-200"
+              disabled={isSaving}
+              className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition duration-200 flex items-center justify-center"
             >
-              Save Address
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save Address'
+              )}
             </button>
           </form>
         </div>

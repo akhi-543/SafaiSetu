@@ -1,114 +1,39 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { collection, addDoc, query, where, getDocs, Timestamp, doc, getDoc, updateDoc } from 'firebase/firestore';
-import { signOut } from 'firebase/auth';
-import { auth, db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { Trash2, Calendar, LogOut, MapPin, User, Package } from 'lucide-react';
+import { useUserProfile } from '../hooks/useUserProfile';
+import { useScheduledPickups } from '../hooks/useScheduledPickups';
+import { Trash2, Calendar, LogOut, MapPin, User, Package, Loader2 } from 'lucide-react';
 import { Map } from '../components/Map';
-
-interface ScheduledPickup {
-  id: string;
-  wasteTypes: string[];
-  pickupDate: Timestamp;
-  quantity: string;
-  location?: {
-    lat: number;
-    lng: number;
-    address: string;
-  };
-  userAddress?: string;
-  status: 'Pending' | 'Completed' | 'Cancelled';
-}
+import { toast } from 'react-toastify';
+import { auth } from '../config/firebase';
 
 export const DashboardPage = () => {
+  const { currentUser } = useAuth();
+  const { profile, isLoading: profileLoading } = useUserProfile(currentUser?.uid);
+  const { 
+    pickups, 
+    isLoading: pickupsLoading, 
+    isSaving, 
+    isCancelling, 
+    addPickup, 
+    cancelPickup 
+  } = useScheduledPickups(currentUser?.uid);
+  const navigate = useNavigate();
+  const [showMap, setShowMap] = useState(false);
+  const [selectedPickup, setSelectedPickup] = useState<any>(null);
+
   const [selectedWasteTypes, setSelectedWasteTypes] = useState<string[]>([]);
   const [pickupDate, setPickupDate] = useState('');
-  const [scheduledPickups, setScheduledPickups] = useState<ScheduledPickup[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<{
     lat: number;
     lng: number;
     address: string;
   } | null>(null);
-  const [userAddress, setUserAddress] = useState('');
   const [quantity, setQuantity] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const { currentUser } = useAuth();
-  const navigate = useNavigate();
 
   const wasteTypes = ['Plastic', 'Paper', 'Metal', 'Glass'];
   const quantities = ['Small Bag', 'Medium Bag', 'Large Bag'];
-
-  useEffect(() => {
-    const initializeDashboard = async () => {
-      if (!currentUser) {
-        navigate('/login');
-        return;
-      }
-
-      setLoading(true);
-      setError('');
-
-      try {
-        await Promise.all([
-          fetchUserAddress(),
-          fetchPickups()
-        ]);
-      } catch (error) {
-        console.error('Error initializing dashboard:', error);
-        setError('Failed to load dashboard data');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initializeDashboard();
-  }, [currentUser, navigate]);
-
-  const fetchUserAddress = async () => {
-    if (!currentUser) return;
-    
-    try {
-      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-      if (userDoc.exists() && userDoc.data().address) {
-        setUserAddress(userDoc.data().address);
-      }
-    } catch (error) {
-      console.error('Error fetching user address:', error);
-      throw error;
-    }
-  };
-
-  const fetchPickups = async () => {
-    if (!currentUser) return;
-    
-    try {
-      const q = query(
-        collection(db, 'scheduled_pickups'),
-        where('userId', '==', currentUser.uid)
-      );
-      
-      const querySnapshot = await getDocs(q);
-      const pickups = querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          wasteTypes: data.wasteTypes || [],
-          pickupDate: data.pickupDate,
-          quantity: data.quantity || '',
-          location: data.location,
-          userAddress: data.userAddress,
-          status: data.status || 'Pending'
-        } as ScheduledPickup;
-      });
-      
-      setScheduledPickups(pickups);
-    } catch (error) {
-      console.error('Error fetching pickups:', error);
-      throw error;
-    }
-  };
 
   const handleWasteTypeToggle = (type: string) => {
     setSelectedWasteTypes(prev => {
@@ -119,86 +44,67 @@ export const DashboardPage = () => {
     });
   };
 
+  const validateForm = () => {
+    if (selectedWasteTypes.length === 0) {
+      toast.error('Please select at least one waste type');
+      return false;
+    }
+    if (!quantity) {
+      toast.error('Please select a quantity');
+      return false;
+    }
+    if (!pickupDate) {
+      toast.error('Please select a pickup date');
+      return false;
+    }
+    if (!selectedLocation) {
+      toast.error('Please select a pickup location');
+      return false;
+    }
+    return true;
+  };
+
   const handleSchedulePickup = async () => {
-    if (!currentUser || selectedWasteTypes.length === 0 || !pickupDate || !selectedLocation || !quantity) {
-      alert('Please select at least one waste type, date, location, and quantity');
+    if (!currentUser || !selectedLocation) return;
+
+    if (!validateForm()) {
       return;
     }
 
     try {
-      setLoading(true);
-      await addDoc(collection(db, 'scheduled_pickups'), {
-        userId: currentUser.uid,
+      await addPickup({
         wasteTypes: selectedWasteTypes,
-        pickupDate: Timestamp.fromDate(new Date(pickupDate)),
-        location: selectedLocation,
-        userAddress,
+        pickupDate,
         quantity,
-        status: 'Pending',
-        createdAt: Timestamp.now()
+        location: selectedLocation,
+        userAddress: profile?.address || ''
       });
 
-      await fetchPickups();
-      
       // Reset form
       setSelectedWasteTypes([]);
       setPickupDate('');
       setSelectedLocation(null);
       setQuantity('');
     } catch (error) {
-      console.error('Error scheduling pickup:', error);
-      setError('Failed to schedule pickup');
-    } finally {
-      setLoading(false);
+      // Error is handled by the hook
     }
   };
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      await auth.signOut();
       navigate('/login');
     } catch (error) {
       console.error('Error logging out:', error);
-      setError('Failed to log out');
     }
   };
 
-  const handleCancelPickup = async (pickupId: string) => {
-    if (!currentUser) return;
-
-    try {
-      setLoading(true);
-      await updateDoc(doc(db, 'scheduled_pickups', pickupId), {
-        status: 'Cancelled'
-      });
-      await fetchPickups();
-    } catch (error) {
-      console.error('Error cancelling pickup:', error);
-      setError('Failed to cancel pickup');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
+  if (profileLoading || pickupsLoading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-red-100 text-red-700 p-4 rounded-lg">
-          {error}
-          <button 
-            onClick={() => window.location.reload()} 
-            className="ml-4 text-sm underline hover:text-red-800"
-          >
-            Retry
-          </button>
+        <div className="flex flex-col items-center">
+          <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
+          <p className="mt-4 text-gray-600">Loading dashboard...</p>
         </div>
       </div>
     );
@@ -232,16 +138,16 @@ export const DashboardPage = () => {
             <Calendar className="w-5 h-5 mr-2" />
             Schedule a Pickup
           </h2>
-          {userAddress && (
+          {profile?.address && (
             <div className="mb-4 p-3 bg-gray-50 rounded-md">
               <p className="text-sm text-gray-600">Your saved pickup address:</p>
-              <p className="text-gray-800 mt-1">{userAddress}</p>
+              <p className="text-gray-800 mt-1">{profile.address}</p>
             </div>
           )}
           <div className="space-y-4">
             <div>
               <label className="block text-gray-700 mb-2">Select Waste Types</label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {wasteTypes.map((type) => (
                   <label
                     key={type}
@@ -306,7 +212,6 @@ export const DashboardPage = () => {
               />
               {selectedLocation && (
                 <div className="mt-2 p-3 bg-gray-50 rounded-md">
-                  <p className="text-sm text-gray-600 font-medium">Selected Location:</p>
                   <p className="text-sm text-gray-800 mt-1">{selectedLocation.address}</p>
                   <p className="text-xs text-gray-500 mt-1">
                     Coordinates: {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
@@ -316,10 +221,17 @@ export const DashboardPage = () => {
             </div>
             <button
               onClick={handleSchedulePickup}
-              disabled={selectedWasteTypes.length === 0 || !pickupDate || !selectedLocation || !quantity}
-              className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 disabled:bg-gray-400"
+              disabled={selectedWasteTypes.length === 0 || !pickupDate || !selectedLocation || !quantity || isSaving}
+              className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 disabled:bg-gray-400 flex items-center justify-center"
             >
-              Confirm Schedule
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Scheduling...
+                </>
+              ) : (
+                'Confirm Schedule'
+              )}
             </button>
           </div>
         </div>
@@ -329,11 +241,11 @@ export const DashboardPage = () => {
             <Trash2 className="w-5 h-5 mr-2" />
             My Scheduled Pickups
           </h2>
-          {scheduledPickups.length === 0 ? (
+          {pickups.length === 0 ? (
             <p className="text-gray-500">No pickups scheduled yet.</p>
           ) : (
             <div className="space-y-4">
-              {scheduledPickups.map((pickup) => (
+              {pickups.map((pickup) => (
                 <div
                   key={pickup.id}
                   className="border p-4 rounded-lg"
@@ -368,10 +280,18 @@ export const DashboardPage = () => {
                     </div>
                     {pickup.status === 'Pending' && (
                       <button
-                        onClick={() => handleCancelPickup(pickup.id)}
-                        className="text-red-600 hover:text-red-800"
+                        onClick={() => cancelPickup(pickup.id)}
+                        disabled={isCancelling === pickup.id}
+                        className="text-red-600 hover:text-red-800 flex items-center"
                       >
-                        Cancel
+                        {isCancelling === pickup.id ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Cancelling...
+                          </>
+                        ) : (
+                          'Cancel'
+                        )}
                       </button>
                     )}
                   </div>
