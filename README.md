@@ -1,0 +1,2 @@
+# SafaiSetu
+ Waste Management App
