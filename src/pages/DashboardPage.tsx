@@ -3,10 +3,22 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { useScheduledPickups } from '../hooks/useScheduledPickups';
-import { Trash2, Calendar, LogOut, MapPin, User, Package, Loader2 } from 'lucide-react';
+import { usePickupCompletion } from '../hooks/usePickupCompletion';
+import { Trash2, Calendar, LogOut, MapPin, User, Package, Loader2, Star, ClipboardList, PackageX, CheckCircle2 } from 'lucide-react';
 import { Map } from '../components/Map';
 import { toast } from 'react-toastify';
 import { auth } from '../config/firebase';
+import { format } from 'date-fns';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { Textarea } from '../components/ui/textarea';
+
+interface PickupLocation {
+  lat: number;
+  lng: number;
+  address: string;
+}
 
 export const DashboardPage = () => {
   const { currentUser } = useAuth();
@@ -19,18 +31,19 @@ export const DashboardPage = () => {
     addPickup, 
     cancelPickup 
   } = useScheduledPickups(currentUser?.uid);
+  const { submitGeneratorRating, isRating } = usePickupCompletion();
   const navigate = useNavigate();
   const [showMap, setShowMap] = useState(false);
   const [selectedPickup, setSelectedPickup] = useState<any>(null);
 
   const [selectedWasteTypes, setSelectedWasteTypes] = useState<string[]>([]);
-  const [pickupDate, setPickupDate] = useState('');
-  const [selectedLocation, setSelectedLocation] = useState<{
-    lat: number;
-    lng: number;
-    address: string;
-  } | null>(null);
-  const [quantity, setQuantity] = useState('');
+  const [quantity, setQuantity] = useState<string>('');
+  const [selectedLocation, setSelectedLocation] = useState<PickupLocation | null>(null);
+  const [pickupDate, setPickupDate] = useState<string>('');
+  const [showSchedulePickup, setShowSchedulePickup] = useState(false);
+
+  const [selectedRating, setSelectedRating] = useState<{ [key: string]: number }>({});
+  const [selectedComment, setSelectedComment] = useState<{ [key: string]: string }>({});
 
   const wasteTypes = ['Plastic', 'Paper', 'Metal', 'Glass'];
   const quantities = ['Small Bag', 'Medium Bag', 'Large Bag'];
@@ -99,6 +112,32 @@ export const DashboardPage = () => {
     }
   };
 
+  const handleRatingChange = (pickupId: string, rating: number) => {
+    setSelectedRating(prev => ({ ...prev, [pickupId]: rating }));
+  };
+
+  const handleCommentChange = (pickupId: string, comment: string) => {
+    setSelectedComment(prev => ({ ...prev, [pickupId]: comment }));
+  };
+
+  const handleSubmitRating = async (pickupId: string) => {
+    if (!selectedRating[pickupId]) {
+      toast.error('Please select a rating');
+      return;
+    }
+    await submitGeneratorRating(pickupId, selectedRating[pickupId], selectedComment[pickupId]);
+    setSelectedRating(prev => {
+      const newState = { ...prev };
+      delete newState[pickupId];
+      return newState;
+    });
+    setSelectedComment(prev => {
+      const newState = { ...prev };
+      delete newState[pickupId];
+      return newState;
+    });
+  };
+
   if (profileLoading || pickupsLoading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -109,6 +148,9 @@ export const DashboardPage = () => {
       </div>
     );
   }
+
+  const pendingPickups = pickups.filter(pickup => pickup.status === 'Pending');
+  const completedPickups = pickups.filter(pickup => pickup.status === 'Completed');
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
@@ -236,83 +278,184 @@ export const DashboardPage = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4 flex items-center">
-            <Trash2 className="w-5 h-5 mr-2" />
+        {/* My Scheduled Pickups Section */}
+        <div className="bg-white rounded-xl shadow-lg p-8 border border-green-100 hover:shadow-xl transition-all duration-200">
+          <h2 className="text-2xl font-semibold mb-6 flex items-center text-green-800">
+            <ClipboardList className="w-6 h-6 mr-3 text-green-600 drop-shadow-sm" />
             My Scheduled Pickups
           </h2>
           {pickups.length === 0 ? (
-            <p className="text-gray-500">No pickups scheduled yet.</p>
+            <div className="bg-green-50/50 rounded-lg p-12 text-center border border-green-100">
+              <ClipboardList className="h-16 w-16 mx-auto text-green-400 mb-4" />
+              <p className="text-lg text-green-800 font-medium mb-2">No Pickups Scheduled</p>
+              <p className="text-gray-600">You haven't scheduled any waste pickups yet.</p>
+              <Button 
+                variant="outline"
+                className="mt-6 border-green-600 text-green-600 hover:bg-green-50"
+                onClick={() => setShowSchedulePickup(true)}
+              >
+                Schedule Your First Pickup
+              </Button>
+            </div>
           ) : (
-            <div className="space-y-4">
-              {pickups.map((pickup) => (
-                <div
-                  key={pickup.id}
-                  className="border p-4 rounded-lg"
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2 mb-2">
-                        {(pickup.wasteTypes || []).map((type) => (
-                          <span
-                            key={type}
-                            className="bg-green-100 text-green-800 text-sm px-2 py-1 rounded"
-                          >
-                            {type}
-                          </span>
-                        ))}
-                        {pickup.quantity && (
-                          <span className="bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded">
-                            {pickup.quantity}
-                          </span>
-                        )}
-                        <span className={`text-sm px-2 py-1 rounded ${
-                          pickup.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                          pickup.status === 'Completed' ? 'bg-green-100 text-green-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
-                          {pickup.status}
-                        </span>
-                      </div>
-                      <p className="text-gray-600">
-                        {pickup.pickupDate?.toDate().toLocaleDateString()}
-                      </p>
-                    </div>
-                    {pickup.status === 'Pending' && (
-                      <button
-                        onClick={() => cancelPickup(pickup.id)}
-                        disabled={isCancelling === pickup.id}
-                        className="text-red-600 hover:text-red-800 flex items-center"
-                      >
-                        {isCancelling === pickup.id ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Cancelling...
-                          </>
-                        ) : (
-                          'Cancel'
-                        )}
-                      </button>
-                    )}
+            <div className="space-y-8">
+              {/* Pending Pickups Section */}
+              <section>
+                <h3 className="text-xl font-semibold mb-6 text-green-800 drop-shadow-sm">Pending Pickups</h3>
+                {pendingPickups.length === 0 ? (
+                  <div className="bg-green-50/50 rounded-lg p-8 text-center border border-green-100">
+                    <PackageX className="h-12 w-12 mx-auto text-green-400 mb-3" />
+                    <p className="text-gray-600">No pending pickups at the moment</p>
                   </div>
-                  {pickup.userAddress && (
-                    <div className="mt-2 text-sm text-gray-600">
-                      <div className="flex items-start">
-                        <MapPin className="w-4 h-4 mr-1 mt-1 flex-shrink-0" />
-                        <p>Pickup Address: {pickup.userAddress}</p>
-                      </div>
-                    </div>
-                  )}
-                  {pickup.location && (
-                    <div className="mt-2 text-sm text-gray-600">
-                      <div className="flex items-start">
-                        <MapPin className="w-4 h-4 mr-1 mt-1 flex-shrink-0" />
-                        <p>Location: {pickup.location.address}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
+                ) : (
+                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {pendingPickups.map(pickup => (
+                      <Card key={pickup.id} className="bg-white border border-green-100 shadow-lg hover:shadow-xl transition-all duration-200 hover:border-green-200 transform hover:-translate-y-1">
+                        <CardHeader className="border-b border-green-100 bg-gradient-to-r from-green-50 to-white">
+                          <CardTitle className="flex items-center justify-between">
+                            <span className="text-green-800 font-semibold">Pickup Request</span>
+                            <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 hover:bg-yellow-200 shadow-sm">Pending</Badge>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-6">
+                          <div className="space-y-4">
+                            <div className="flex items-center text-sm text-gray-600">
+                              <Calendar className="w-4 h-4 mr-3 text-green-600" />
+                              {pickup.pickupDate ? format(pickup.pickupDate.toDate(), 'MMM d, yyyy') : 'Date not set'}
+                            </div>
+                            <div className="flex items-start text-sm text-gray-600">
+                              <MapPin className="w-4 h-4 mr-3 text-green-600 mt-1 flex-shrink-0" />
+                              <span>{pickup.location?.address || pickup.userAddress || 'Location not specified'}</span>
+                            </div>
+                            <div className="text-sm border-t border-green-100 pt-4 space-y-2">
+                              <div>
+                                <span className="font-medium text-green-700">Waste Types: </span>
+                                <span className="text-gray-600">{pickup.wasteTypes.join(', ')}</span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-green-700">Quantity: </span>
+                                <span className="text-gray-600">{pickup.quantity}</span>
+                              </div>
+                            </div>
+                            <Button
+                              variant="destructive"
+                              className="w-full mt-2 shadow-md hover:shadow-lg transition-all duration-200"
+                              onClick={() => cancelPickup(pickup.id)}
+                              disabled={isCancelling === pickup.id}
+                            >
+                              {isCancelling === pickup.id ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                  <span>Cancelling...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  <span>Cancel Pickup</span>
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {/* Completed Pickups Section */}
+              <section>
+                <h3 className="text-xl font-semibold mb-6 text-green-800 drop-shadow-sm">Completed Pickups</h3>
+                {completedPickups.length === 0 ? (
+                  <div className="bg-green-50/50 rounded-lg p-8 text-center border border-green-100">
+                    <CheckCircle2 className="h-12 w-12 mx-auto text-green-400 mb-3" />
+                    <p className="text-gray-600">No completed pickups yet</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {completedPickups.map(pickup => (
+                      <Card key={pickup.id} className="bg-white border border-green-100 shadow-lg hover:shadow-xl transition-all duration-200 hover:border-green-200 transform hover:-translate-y-1">
+                        <CardHeader className="border-b border-green-100 bg-gradient-to-r from-green-50 to-white">
+                          <CardTitle className="flex items-center justify-between">
+                            <span className="text-green-800 font-semibold">Pickup Request</span>
+                            <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-200 shadow-sm">Completed</Badge>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-6">
+                          <div className="space-y-4">
+                            <div className="flex items-center text-sm text-gray-600">
+                              <Calendar className="w-4 h-4 mr-3 text-green-600" />
+                              {pickup.pickupDate ? format(pickup.pickupDate.toDate(), 'MMM d, yyyy') : 'Date not set'}
+                            </div>
+                            <div className="flex items-start text-sm text-gray-600">
+                              <MapPin className="w-4 h-4 mr-3 text-green-600 mt-1 flex-shrink-0" />
+                              <span>{pickup.location?.address || pickup.userAddress || 'Location not specified'}</span>
+                            </div>
+                            <div className="text-sm border-t border-green-100 pt-4 space-y-2">
+                              <div>
+                                <span className="font-medium text-green-700">Waste Types: </span>
+                                <span className="text-gray-600">{pickup.wasteTypes.join(', ')}</span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-green-700">Quantity: </span>
+                                <span className="text-gray-600">{pickup.quantity}</span>
+                              </div>
+                            </div>
+                            {!pickup.generatorRating && (
+                              <div className="mt-4 space-y-4 border-t border-green-100 pt-4">
+                                <div className="flex items-center justify-center space-x-2">
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <button
+                                      key={star}
+                                      onClick={() => handleRatingChange(pickup.id, star)}
+                                      className={`text-2xl transition-colors duration-200 ${
+                                        selectedRating[pickup.id] >= star
+                                          ? 'text-yellow-400 hover:text-yellow-500'
+                                          : 'text-gray-300 hover:text-gray-400'
+                                      }`}
+                                    >
+                                      <Star className="w-6 h-6" />
+                                    </button>
+                                  ))}
+                                </div>
+                                <Textarea
+                                  placeholder="Add a comment (optional)"
+                                  value={selectedComment[pickup.id] || ''}
+                                  onChange={(e) => handleCommentChange(pickup.id, e.target.value)}
+                                  className="min-h-[100px] resize-none border-green-100 focus:border-green-200 bg-green-50/50 hover:bg-green-50"
+                                />
+                                <Button
+                                  variant="outline"
+                                  className="w-full shadow-md hover:shadow-lg transition-all duration-200 border-green-600 text-green-600 hover:bg-green-50"
+                                  onClick={() => handleSubmitRating(pickup.id)}
+                                  disabled={isRating === pickup.id}
+                                >
+                                  {isRating === pickup.id ? (
+                                    <>
+                                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                      <span>Submitting...</span>
+                                    </>
+                                  ) : (
+                                    'Submit Rating'
+                                  )}
+                                </Button>
+                              </div>
+                            )}
+                            {pickup.generatorRating && (
+                              <div className="mt-4 border-t border-green-100 pt-4">
+                                <p className="text-sm text-green-700">Your Rating: <span className="font-medium text-yellow-500">{pickup.generatorRating}/5</span></p>
+                                {pickup.generatorComment && (
+                                  <p className="text-sm text-green-600 mt-2 italic">"{pickup.generatorComment}"</p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </section>
             </div>
           )}
         </div>

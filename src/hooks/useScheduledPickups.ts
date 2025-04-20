@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { collection, addDoc, query, where, getDocs, Timestamp, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs, Timestamp, doc, updateDoc, or, onSnapshot } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { toast } from 'react-toastify';
+import { toast } from 'react-hot-toast';
+import { useUserProfile } from './useUserProfile';
 
 export interface ScheduledPickup {
   id: string;
@@ -14,7 +15,14 @@ export interface ScheduledPickup {
     address: string;
   };
   userAddress?: string;
-  status: 'Pending' | 'Completed' | 'Cancelled';
+  status: 'Pending' | 'Assigned' | 'Completed' | 'Cancelled';
+  assignedTo?: string;
+  userId?: string;
+  generatorRating?: number;
+  pickerRating?: number;
+  generatorComment?: string;
+  pickerComment?: string;
+  completedAt?: Timestamp;
 }
 
 interface NewPickupData {
@@ -34,53 +42,83 @@ export const useScheduledPickups = (userId: string | undefined) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isCancelling, setIsCancelling] = useState<string | null>(null);
+  const { profile } = useUserProfile(userId);
 
   useEffect(() => {
-    const fetchPickups = async () => {
-      if (!userId) return;
+    if (!userId) {
+      setIsLoading(false);
+      return;
+    }
 
+    let unsubscribe: () => void;
+
+    const setupListener = async () => {
       try {
         setIsLoading(true);
-        const q = query(
-          collection(db, 'scheduled_pickups'),
-          where('userId', '==', userId)
-        );
+        let q;
         
-        const querySnapshot = await getDocs(q);
-        const fetchedPickups = querySnapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            wasteTypes: data.wasteTypes || [],
-            pickupDate: data.pickupDate,
-            quantity: data.quantity || '',
-            location: data.location,
-            userAddress: data.userAddress,
-            status: data.status || 'Pending'
-          } as ScheduledPickup;
+        if (profile?.userType === 'picker') {
+          // For pickers, fetch both pending pickups and their assigned pickups
+          q = query(
+            collection(db, 'scheduled_pickups'),
+            or(
+              where('status', '==', 'Pending'),
+              where('assignedTo', '==', userId)
+            )
+          );
+        } else {
+          // For generators, fetch their own pickups
+          q = query(
+            collection(db, 'scheduled_pickups'),
+            where('userId', '==', userId)
+          );
+        }
+        
+        unsubscribe = onSnapshot(q, (querySnapshot) => {
+          const fetchedPickups = querySnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              wasteTypes: data.wasteTypes || [],
+              pickupDate: data.pickupDate,
+              quantity: data.quantity || '',
+              location: data.location,
+              userAddress: data.userAddress,
+              status: data.status || 'Pending',
+              assignedTo: data.assignedTo,
+              userId: data.userId
+            } as ScheduledPickup;
+          });
+
+          // Sort pickups by date
+          const sortedPickups = fetchedPickups.sort((a, b) => 
+            a.pickupDate.toMillis() - b.pickupDate.toMillis()
+          );
+          
+          setPickups(sortedPickups);
+          setIsLoading(false);
+        }, (error) => {
+          console.error('Error in pickup listener:', error);
+          toast.error('Failed to load scheduled pickups');
+          setIsLoading(false);
         });
 
-        // Sort pickups by date and status
-        const sortedPickups = fetchedPickups.sort((a, b) => {
-          // First, sort by status (Cancelled goes to bottom)
-          if (a.status === 'Cancelled' && b.status !== 'Cancelled') return 1;
-          if (a.status !== 'Cancelled' && b.status === 'Cancelled') return -1;
-          
-          // Then sort by date
-          return a.pickupDate.toMillis() - b.pickupDate.toMillis();
-        });
-        
-        setPickups(sortedPickups);
       } catch (error) {
-        console.error('Error fetching pickups:', error);
+        console.error('Error setting up pickup listener:', error);
         toast.error('Failed to load scheduled pickups');
-      } finally {
         setIsLoading(false);
       }
     };
 
-    fetchPickups();
-  }, [userId]);
+    setupListener();
+
+    // Cleanup function
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [userId, profile?.userType]);
 
   const addPickup = async (pickupData: NewPickupData) => {
     if (!userId) return;
@@ -95,36 +133,6 @@ export const useScheduledPickups = (userId: string | undefined) => {
         createdAt: Timestamp.now()
       });
 
-      // Refresh the list
-      const q = query(
-        collection(db, 'scheduled_pickups'),
-        where('userId', '==', userId)
-      );
-      const querySnapshot = await getDocs(q);
-      const fetchedPickups = querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          wasteTypes: data.wasteTypes || [],
-          pickupDate: data.pickupDate,
-          quantity: data.quantity || '',
-          location: data.location,
-          userAddress: data.userAddress,
-          status: data.status || 'Pending'
-        } as ScheduledPickup;
-      });
-
-      // Sort pickups by date and status
-      const sortedPickups = fetchedPickups.sort((a, b) => {
-        // First, sort by status (Cancelled goes to bottom)
-        if (a.status === 'Cancelled' && b.status !== 'Cancelled') return 1;
-        if (a.status !== 'Cancelled' && b.status === 'Cancelled') return -1;
-        
-        // Then sort by date
-        return a.pickupDate.toMillis() - b.pickupDate.toMillis();
-      });
-      
-      setPickups(sortedPickups);
       toast.success('Pickup scheduled successfully!');
     } catch (error) {
       console.error('Error scheduling pickup:', error);
@@ -139,25 +147,8 @@ export const useScheduledPickups = (userId: string | undefined) => {
     try {
       setIsCancelling(pickupId);
       await updateDoc(doc(db, 'scheduled_pickups', pickupId), {
-        status: 'Cancelled' as const
-      });
-
-      setPickups(prev => {
-        const updatedPickups = prev.map(pickup => 
-          pickup.id === pickupId 
-            ? { ...pickup, status: 'Cancelled' as const }
-            : pickup
-        );
-
-        // Sort pickups by date and status
-        return updatedPickups.sort((a, b) => {
-          // First, sort by status (Cancelled goes to bottom)
-          if (a.status === 'Cancelled' && b.status !== 'Cancelled') return 1;
-          if (a.status !== 'Cancelled' && b.status === 'Cancelled') return -1;
-          
-          // Then sort by date
-          return a.pickupDate.toMillis() - b.pickupDate.toMillis();
-        });
+        status: 'Cancelled' as const,
+        updatedAt: Timestamp.now()
       });
 
       toast.success('Pickup cancelled successfully');
