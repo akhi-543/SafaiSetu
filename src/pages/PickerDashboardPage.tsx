@@ -350,11 +350,11 @@ export const PickerDashboardPage = () => {
                             placeholder="Add a comment (optional)"
                             value={selectedComment[pickup.id] || ''}
                             onChange={(e) => handleCommentChange(pickup.id, e.target.value)}
-                            className="min-h-[100px] resize-none"
+                            className="min-h-[100px] resize-none border-green-100 focus:border-green-200 bg-green-50/50 hover:bg-green-50"
                           />
                           <Button
                             variant="outline"
-                            className="w-full shadow-md hover:shadow-lg transition-all duration-200"
+                            className="w-full shadow-md hover:shadow-lg transition-all duration-200 border-green-600 text-green-600 hover:bg-green-50"
                             onClick={() => handleSubmitRating(pickup.id)}
                             disabled={isRating === pickup.id}
                           >
@@ -371,10 +371,27 @@ export const PickerDashboardPage = () => {
                       )}
                       {pickup.pickerRating && (
                         <div className="mt-4 border-t border-green-100 pt-4">
-                          <p className="text-sm text-green-700">Your Rating: <span className="font-medium text-yellow-500">{pickup.pickerRating}/5</span></p>
-                          {pickup.pickerComment && (
-                            <p className="text-sm text-green-600 mt-2 italic">"{pickup.pickerComment}"</p>
-                          )}
+                          <div className="flex flex-col items-center space-y-2">
+                            <p className="text-sm text-green-700 font-medium">Your Rating</p>
+                            <div className="flex items-center space-x-1">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star
+                                  key={star}
+                                  className={`w-5 h-5 ${
+                                    star <= (pickup.pickerRating || 0)
+                                      ? 'text-yellow-400 fill-current'
+                                      : 'text-gray-300'
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                            {pickup.pickerComment && (
+                              <div className="mt-2 text-center">
+                                <p className="text-sm text-gray-500 font-medium">Your Comment</p>
+                                <p className="text-sm text-green-600 mt-1 italic">"{pickup.pickerComment}"</p>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>

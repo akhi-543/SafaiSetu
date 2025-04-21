@@ -4,7 +4,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { useScheduledPickups } from '../hooks/useScheduledPickups';
 import { usePickupCompletion } from '../hooks/usePickupCompletion';
-import { Trash2, Calendar, LogOut, MapPin, User, Package, Loader2, Star, ClipboardList, PackageX, CheckCircle2 } from 'lucide-react';
+import { 
+  Trash2, Calendar, LogOut, MapPin, User, Package, 
+  Loader2, Star, ClipboardList, PackageX, CheckCircle2,
+  PackageSearch, CalendarDays, Scale
+} from 'lucide-react';
 import { Map } from '../components/Map';
 import { toast } from 'react-toastify';
 import { auth } from '../config/firebase';
@@ -175,28 +179,35 @@ export const DashboardPage = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4 flex items-center">
-            <Calendar className="w-5 h-5 mr-2" />
+        {/* Schedule Pickup Section */}
+        <div className="bg-white rounded-xl shadow-lg p-8 border border-green-100 hover:shadow-xl transition-all duration-200 mb-8">
+          <h2 className="text-2xl font-semibold mb-6 flex items-center text-green-800">
+            <PackageSearch className="w-6 h-6 mr-3 text-green-600 drop-shadow-sm" />
             Schedule a Pickup
           </h2>
+
           {profile?.address && (
-            <div className="mb-4 p-3 bg-gray-50 rounded-md">
-              <p className="text-sm text-gray-600">Your saved pickup address:</p>
-              <p className="text-gray-800 mt-1">{profile.address}</p>
+            <div className="bg-green-50/50 rounded-lg p-4 mb-6 border border-green-100">
+              <p className="text-sm text-green-700 font-medium">Your saved pickup address:</p>
+              <p className="text-gray-600 mt-1">{profile.address}</p>
             </div>
           )}
-          <div className="space-y-4">
-            <div>
-              <label className="block text-gray-700 mb-2">Select Waste Types</label>
-              <div className="grid grid-cols-2 gap-2">
+
+          <div className="space-y-6">
+            {/* Waste Types Selection */}
+            <div className="bg-white rounded-lg p-6 border border-green-100 shadow-md hover:shadow-lg transition-all duration-200">
+              <h3 className="text-lg font-semibold mb-4 flex items-center text-green-800">
+                <Package className="w-5 h-5 mr-2 text-green-600" />
+                Select Waste Types
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
                 {wasteTypes.map((type) => (
                   <label
                     key={type}
-                    className={`flex items-center p-3 rounded cursor-pointer ${
+                    className={`flex items-center p-4 rounded-lg cursor-pointer transition-all duration-200 ${
                       selectedWasteTypes.includes(type)
-                        ? 'bg-green-100 border-2 border-green-500'
-                        : 'bg-gray-50 border-2 border-gray-200 hover:bg-gray-100'
+                        ? 'bg-green-50 border-2 border-green-500 shadow-md'
+                        : 'bg-white border-2 border-green-100 hover:border-green-200 hover:bg-green-50/50'
                     }`}
                   >
                     <input
@@ -205,25 +216,27 @@ export const DashboardPage = () => {
                       onChange={() => handleWasteTypeToggle(type)}
                       className="h-4 w-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
                     />
-                    <span className="ml-2">{type}</span>
+                    <span className="ml-2 text-gray-700">{type}</span>
                   </label>
                 ))}
               </div>
             </div>
-            <div>
-              <label className="block text-gray-700 mb-2 flex items-center">
-                <Package className="w-4 h-4 mr-2" />
+
+            {/* Quantity Selection */}
+            <div className="bg-white rounded-lg p-6 border border-green-100 shadow-md hover:shadow-lg transition-all duration-200">
+              <h3 className="text-lg font-semibold mb-4 flex items-center text-green-800">
+                <Scale className="w-5 h-5 mr-2 text-green-600" />
                 Select Quantity
-              </label>
-              <div className="grid grid-cols-3 gap-2">
+              </h3>
+              <div className="grid grid-cols-3 gap-3">
                 {quantities.map((q) => (
                   <button
                     key={q}
                     onClick={() => setQuantity(q)}
-                    className={`px-4 py-2 rounded ${
+                    className={`px-4 py-3 rounded-lg transition-all duration-200 ${
                       quantity === q
-                        ? 'bg-green-600 text-white'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        ? 'bg-green-600 text-white shadow-md hover:bg-green-700'
+                        : 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200'
                     }`}
                   >
                     {q}
@@ -231,50 +244,66 @@ export const DashboardPage = () => {
                 ))}
               </div>
             </div>
-            <div>
-              <label className="block text-gray-700 mb-2">Select Date</label>
-              <input
-                type="date"
-                value={pickupDate}
-                onChange={(e) => setPickupDate(e.target.value)}
-                className="w-full p-2 border rounded"
-                min={new Date().toISOString().split('T')[0]}
-              />
+
+            {/* Date Selection */}
+            <div className="bg-white rounded-lg p-6 border border-green-100 shadow-md hover:shadow-lg transition-all duration-200">
+              <h3 className="text-lg font-semibold mb-4 flex items-center text-green-800">
+                <CalendarDays className="w-5 h-5 mr-2 text-green-600" />
+                Select Date
+              </h3>
+              <div className="relative">
+                <input
+                  type="date"
+                  value={pickupDate}
+                  onChange={(e) => setPickupDate(e.target.value)}
+                  className="w-full p-3 rounded-lg border border-green-200 focus:border-green-500 focus:ring-1 focus:ring-green-500 bg-green-50/50 hover:bg-green-50 transition-colors duration-200"
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-gray-700 mb-2 flex items-center">
-                <MapPin className="w-4 h-4 mr-2" />
+
+            {/* Location Selection */}
+            <div className="bg-white rounded-lg p-6 border border-green-100 shadow-md hover:shadow-lg transition-all duration-200">
+              <h3 className="text-lg font-semibold mb-4 flex items-center text-green-800">
+                <MapPin className="w-5 h-5 mr-2 text-green-600" />
                 Select Location
-              </label>
-              <Map
-                onLocationSelect={(lat, lng, address) => 
-                  setSelectedLocation({ lat, lng, address })
-                }
-                initialLocation={selectedLocation || undefined}
-              />
+              </h3>
+              <div className="rounded-lg overflow-hidden border border-green-200">
+                <Map
+                  onLocationSelect={(lat, lng, address) => 
+                    setSelectedLocation({ lat, lng, address })
+                  }
+                  initialLocation={selectedLocation || undefined}
+                />
+              </div>
               {selectedLocation && (
-                <div className="mt-2 p-3 bg-gray-50 rounded-md">
-                  <p className="text-sm text-gray-800 mt-1">{selectedLocation.address}</p>
-                  <p className="text-xs text-gray-500 mt-1">
+                <div className="mt-4 p-4 rounded-lg bg-green-50/50 border border-green-100">
+                  <p className="text-sm text-gray-700">{selectedLocation.address}</p>
+                  <p className="text-xs text-green-600 mt-1">
                     Coordinates: {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
                   </p>
                 </div>
               )}
             </div>
-            <button
+
+            {/* Confirm Button */}
+            <Button
               onClick={handleSchedulePickup}
               disabled={selectedWasteTypes.length === 0 || !pickupDate || !selectedLocation || !quantity || isSaving}
-              className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 disabled:bg-gray-400 flex items-center justify-center"
+              className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center text-lg font-medium"
             >
               {isSaving ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                   Scheduling...
                 </>
               ) : (
-                'Confirm Schedule'
+                <>
+                  <PackageSearch className="w-5 h-5 mr-2" />
+                  Confirm Schedule
+                </>
               )}
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -443,10 +472,27 @@ export const DashboardPage = () => {
                             )}
                             {pickup.generatorRating && (
                               <div className="mt-4 border-t border-green-100 pt-4">
-                                <p className="text-sm text-green-700">Your Rating: <span className="font-medium text-yellow-500">{pickup.generatorRating}/5</span></p>
-                                {pickup.generatorComment && (
-                                  <p className="text-sm text-green-600 mt-2 italic">"{pickup.generatorComment}"</p>
-                                )}
+                                <div className="flex flex-col items-center space-y-2">
+                                  <p className="text-sm text-green-700 font-medium">Your Rating</p>
+                                  <div className="flex items-center space-x-1">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                      <Star
+                                        key={star}
+                                        className={`w-5 h-5 ${
+                                          star <= (pickup.generatorRating || 0)
+                                            ? 'text-yellow-400 fill-current'
+                                            : 'text-gray-300'
+                                        }`}
+                                      />
+                                    ))}
+                                  </div>
+                                  {pickup.generatorComment && (
+                                    <div className="mt-2 text-center">
+                                      <p className="text-sm text-gray-500 font-medium">Your Comment</p>
+                                      <p className="text-sm text-green-600 mt-1 italic">"{pickup.generatorComment}"</p>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             )}
                           </div>
