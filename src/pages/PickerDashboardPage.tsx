@@ -16,6 +16,9 @@ import { Textarea } from '../components/ui/textarea';
 import { Switch } from '../components/ui/switch';
 import { Label } from '../components/ui/label';
 import { Link } from 'react-router-dom';
+import { Input } from '../components/ui/input';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../config/firebase';
 
 export const PickerDashboardPage = () => {
   const { currentUser } = useAuth();
@@ -27,6 +30,8 @@ export const PickerDashboardPage = () => {
 
   const [selectedRating, setSelectedRating] = useState<{ [key: string]: number }>({});
   const [selectedComment, setSelectedComment] = useState<{ [key: string]: string }>({});
+  const [pincode, setPincode] = useState('');
+  const [savingPincode, setSavingPincode] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -83,6 +88,25 @@ export const PickerDashboardPage = () => {
       delete newState[pickupId];
       return newState;
     });
+  };
+
+  const handleSavePincode = async () => {
+    if (!pincode || !profile) return;
+    
+    setSavingPincode(true);
+    try {
+      const userRef = doc(db, 'users', profile.userId);
+      await updateDoc(userRef, {
+        pincode: pincode.trim(),
+        updatedAt: new Date()
+      });
+      toast.success('Pincode saved successfully');
+    } catch (error) {
+      console.error('Error saving pincode:', error);
+      toast.error('Failed to save pincode');
+    } finally {
+      setSavingPincode(false);
+    }
   };
 
   if (profileLoading || pickupsLoading) {
@@ -199,8 +223,49 @@ export const PickerDashboardPage = () => {
                 <p className="font-semibold text-gray-900">{profile?.address || 'Not set'}</p>
               </div>
             </div>
+            <div className="flex items-center p-4 rounded-lg bg-green-50/50 hover:bg-green-50 transition-colors duration-200">
+              <MapPin className="w-5 h-5 mr-3 text-green-500 drop-shadow-sm" />
+              <div className="flex-1">
+                <p className="text-sm text-green-600 font-medium">Pincode</p>
+                {profile?.pincode ? (
+                  <p className="font-semibold text-gray-900">{profile.pincode}</p>
+                ) : (
+                  <div className="mt-2 flex gap-2">
+                    <Input
+                      type="text"
+                      placeholder="Enter your pincode"
+                      value={pincode}
+                      onChange={(e) => setPincode(e.target.value)}
+                      className="w-32"
+                      maxLength={6}
+                    />
+                    <Button
+                      onClick={handleSavePincode}
+                      disabled={!pincode || savingPincode}
+                      className="bg-green-600 text-white hover:bg-green-700"
+                    >
+                      {savingPincode ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        'Save'
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* Show warning if no pincode is set */}
+        {!profile?.pincode && (
+          <div className="bg-yellow-50 rounded-lg p-4 mb-8 border border-yellow-200">
+            <p className="text-yellow-800 flex items-center">
+              <MapPin className="w-5 h-5 mr-2" />
+              Please set your pincode to see pickup requests in your area.
+            </p>
+          </div>
+        )}
 
         {/* Pending Pickups Section */}
         <section className="bg-white rounded-xl shadow-lg p-8 border border-green-100 hover:shadow-xl transition-all duration-200">

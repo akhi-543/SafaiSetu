@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, addDoc, query, where, getDocs, Timestamp, doc, updateDoc, or, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs, Timestamp, doc, updateDoc, or, onSnapshot, and } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { toast } from 'react-hot-toast';
 import { useUserProfile } from './useUserProfile';
@@ -15,6 +15,7 @@ export interface ScheduledPickup {
     address: string;
   };
   userAddress?: string;
+  pincode?: string;
   status: 'Pending' | 'Assigned' | 'Completed' | 'Cancelled';
   assignedTo?: string;
   userId?: string;
@@ -35,6 +36,7 @@ interface NewPickupData {
     address: string;
   };
   userAddress: string;
+  pincode?: string;
 }
 
 export const useScheduledPickups = (userId: string | undefined) => {
@@ -58,14 +60,25 @@ export const useScheduledPickups = (userId: string | undefined) => {
         let q;
         
         if (profile?.userType === 'picker') {
-          // For pickers, fetch both pending pickups and their assigned pickups
-          q = query(
-            collection(db, 'scheduled_pickups'),
-            or(
-              where('status', '==', 'Pending'),
+          if (!profile.pincode) {
+            // If picker has no pincode set, don't show any pending pickups
+            q = query(
+              collection(db, 'scheduled_pickups'),
               where('assignedTo', '==', userId)
-            )
-          );
+            );
+          } else {
+            // For pickers with pincode, fetch pending pickups in their area and their assigned pickups
+            q = query(
+              collection(db, 'scheduled_pickups'),
+              or(
+                and(
+                  where('status', '==', 'Pending'),
+                  where('pincode', '==', profile.pincode)
+                ),
+                where('assignedTo', '==', userId)
+              )
+            );
+          }
         } else {
           // For generators, fetch their own pickups
           q = query(
@@ -75,20 +88,10 @@ export const useScheduledPickups = (userId: string | undefined) => {
         }
         
         unsubscribe = onSnapshot(q, (querySnapshot) => {
-          const fetchedPickups = querySnapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-              id: doc.id,
-              wasteTypes: data.wasteTypes || [],
-              pickupDate: data.pickupDate,
-              quantity: data.quantity || '',
-              location: data.location,
-              userAddress: data.userAddress,
-              status: data.status || 'Pending',
-              assignedTo: data.assignedTo,
-              userId: data.userId
-            } as ScheduledPickup;
-          });
+          const fetchedPickups = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+          } as ScheduledPickup));
 
           // Sort pickups by date
           const sortedPickups = fetchedPickups.sort((a, b) => 
@@ -112,22 +115,25 @@ export const useScheduledPickups = (userId: string | undefined) => {
 
     setupListener();
 
-    // Cleanup function
     return () => {
       if (unsubscribe) {
         unsubscribe();
       }
     };
-  }, [userId, profile?.userType]);
+  }, [userId, profile?.userType, profile?.pincode]);
 
   const addPickup = async (pickupData: NewPickupData) => {
     if (!userId) return;
 
     try {
       setIsSaving(true);
+      // Extract pincode from address if not provided
+      const pincode = pickupData.pincode || extractPincode(pickupData.location.address);
+      
       await addDoc(collection(db, 'scheduled_pickups'), {
         userId,
         ...pickupData,
+        pincode,
         pickupDate: Timestamp.fromDate(new Date(pickupData.pickupDate)),
         status: 'Pending' as const,
         createdAt: Timestamp.now()
@@ -141,6 +147,13 @@ export const useScheduledPickups = (userId: string | undefined) => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // Helper function to extract pincode from address
+  const extractPincode = (address: string): string | undefined => {
+    // Basic regex to find 6-digit number in the address
+    const match = address.match(/\b\d{6}\b/);
+    return match ? match[0] : undefined;
   };
 
   const cancelPickup = async (pickupId: string) => {

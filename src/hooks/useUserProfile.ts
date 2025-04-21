@@ -11,6 +11,7 @@ export interface UserProfile {
   address: string;
   userType: 'generator' | 'picker';
   isAvailable?: boolean;
+  pincode?: string;
   createdAt: Date;
   updatedAt: Date;
 }
