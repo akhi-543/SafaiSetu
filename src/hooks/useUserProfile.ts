@@ -10,6 +10,7 @@ export interface UserProfile {
   phone: string;
   address: string;
   userType: 'generator' | 'picker';
+  isAvailable?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -17,65 +18,74 @@ export interface UserProfile {
 export const useUserProfile = (userId: string | undefined) => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchUserProfile = async () => {
+      setIsLoading(true);
+      setError(null);
+
       if (!userId) {
         setIsLoading(false);
         return;
       }
 
       try {
+        console.log('Fetching user profile for:', userId);
         const userDoc = await getDoc(doc(db, 'users', userId));
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          setProfile({
-            userId: data.userId,
-            name: data.name || '',
-            email: data.email || '',
-            phone: data.phone || '',
-            address: data.address || '',
-            userType: data.userType || 'generator',
-            createdAt: data.createdAt?.toDate() || new Date(),
-            updatedAt: data.updatedAt?.toDate() || new Date(),
-          });
-        } else {
-          console.warn('No profile found for user:', userId);
+        
+        if (!userDoc.exists()) {
+          console.error('No user profile found for:', userId);
+          setError(new Error('Profile not found'));
           setProfile(null);
+          return;
         }
-      } catch (error) {
-        console.error('Error fetching user profile:', error);
-        toast.error('Failed to load profile');
+
+        const data = userDoc.data();
+        // Convert Firestore Timestamps to Dates
+        const profile = {
+          userId: userDoc.id,
+          ...data,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date(),
+        } as UserProfile;
+
+        console.log('Profile loaded successfully:', profile);
+        setProfile(profile);
+        setError(null);
+      } catch (err: any) {
+        console.error('Error fetching user profile:', err);
+        setError(err);
         setProfile(null);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchProfile();
+    fetchUserProfile();
   }, [userId]);
 
-  const updateProfile = async (newProfile: Partial<UserProfile>) => {
-    if (!userId) return;
+  const updateAvailability = async (isAvailable: boolean) => {
+    if (!userId || !profile || profile.userType !== 'picker') {
+      return;
+    }
 
-    setIsSaving(true);
+    setIsUpdating(true);
     try {
-      const userRef = doc(db, 'users', userId);
-      await updateDoc(userRef, {
-        ...newProfile,
-        updatedAt: new Date(),
+      await updateDoc(doc(db, 'users', userId), {
+        isAvailable,
+        updatedAt: new Date()
       });
-
-      setProfile(prev => prev ? { ...prev, ...newProfile } : null);
-      toast.success('Profile updated successfully');
+      setProfile(prev => prev ? { ...prev, isAvailable } : null);
+      toast.success('Availability updated successfully');
     } catch (error) {
-      console.error('Error updating profile:', error);
-      toast.error('Failed to update profile');
+      console.error('Error updating availability:', error);
+      toast.error('Failed to update availability');
     } finally {
-      setIsSaving(false);
+      setIsUpdating(false);
     }
   };
 
-  return { profile, isLoading, isSaving, updateProfile };
+  return { profile, isLoading, error, isUpdating, updateAvailability };
 }; 

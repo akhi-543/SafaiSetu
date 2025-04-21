@@ -19,9 +19,9 @@ import { Badge } from '../components/ui/badge';
 import { Textarea } from '../components/ui/textarea';
 
 interface PickupLocation {
-  lat: number;
-  lng: number;
-  address: string;
+    lat: number;
+    lng: number;
+    address: string;
 }
 
 export const DashboardPage = () => {
@@ -96,7 +96,7 @@ export const DashboardPage = () => {
         location: selectedLocation,
         userAddress: profile?.address || ''
       });
-
+      
       // Reset form
       setSelectedWasteTypes([]);
       setPickupDate('');
@@ -252,13 +252,13 @@ export const DashboardPage = () => {
                 Select Date
               </h3>
               <div className="relative">
-                <input
-                  type="date"
-                  value={pickupDate}
-                  onChange={(e) => setPickupDate(e.target.value)}
+              <input
+                type="date"
+                value={pickupDate}
+                onChange={(e) => setPickupDate(e.target.value)}
                   className="w-full p-3 rounded-lg border border-green-200 focus:border-green-500 focus:ring-1 focus:ring-green-500 bg-green-50/50 hover:bg-green-50 transition-colors duration-200"
-                  min={new Date().toISOString().split('T')[0]}
-                />
+                min={new Date().toISOString().split('T')[0]}
+              />
               </div>
             </div>
 
@@ -269,12 +269,12 @@ export const DashboardPage = () => {
                 Select Location
               </h3>
               <div className="rounded-lg overflow-hidden border border-green-200">
-                <Map
-                  onLocationSelect={(lat, lng, address) => 
-                    setSelectedLocation({ lat, lng, address })
-                  }
-                  initialLocation={selectedLocation || undefined}
-                />
+              <Map
+                onLocationSelect={(lat, lng, address) => 
+                  setSelectedLocation({ lat, lng, address })
+                }
+                initialLocation={selectedLocation || undefined}
+              />
               </div>
               {selectedLocation && (
                 <div className="mt-4 p-4 rounded-lg bg-green-50/50 border border-green-100">
@@ -300,7 +300,7 @@ export const DashboardPage = () => {
               ) : (
                 <>
                   <PackageSearch className="w-5 h-5 mr-2" />
-                  Confirm Schedule
+              Confirm Schedule
                 </>
               )}
             </Button>
@@ -347,7 +347,7 @@ export const DashboardPage = () => {
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="pt-6">
-                          <div className="space-y-4">
+            <div className="space-y-4">
                             <div className="flex items-center text-sm text-gray-600">
                               <Calendar className="w-4 h-4 mr-3 text-green-600" />
                               {pickup.pickupDate ? format(pickup.pickupDate.toDate(), 'MMM d, yyyy') : 'Date not set'}
@@ -361,7 +361,7 @@ export const DashboardPage = () => {
                                 <span className="font-medium text-green-700">Waste Types: </span>
                                 <span className="text-gray-600">{pickup.wasteTypes.join(', ')}</span>
                               </div>
-                              <div>
+                    <div>
                                 <span className="font-medium text-green-700">Quantity: </span>
                                 <span className="text-gray-600">{pickup.quantity}</span>
                               </div>
@@ -384,11 +384,11 @@ export const DashboardPage = () => {
                                 </>
                               )}
                             </Button>
-                          </div>
+                      </div>
                         </CardContent>
                       </Card>
                     ))}
-                  </div>
+                    </div>
                 )}
               </section>
 
@@ -428,7 +428,7 @@ export const DashboardPage = () => {
                               <div>
                                 <span className="font-medium text-green-700">Quantity: </span>
                                 <span className="text-gray-600">{pickup.quantity}</span>
-                              </div>
+                      </div>
                             </div>
                             {!pickup.generatorRating && (
                               <div className="mt-4 space-y-4 border-t border-green-100 pt-4">
@@ -490,15 +490,15 @@ export const DashboardPage = () => {
                                     <div className="mt-2 text-center">
                                       <p className="text-sm text-gray-500 font-medium">Your Comment</p>
                                       <p className="text-sm text-green-600 mt-1 italic">"{pickup.generatorComment}"</p>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </div>
+                    </div>
+                  )}
+                      </div>
+                    </div>
+                  )}
+                </div>
                         </CardContent>
                       </Card>
-                    ))}
+              ))}
                   </div>
                 )}
               </section>

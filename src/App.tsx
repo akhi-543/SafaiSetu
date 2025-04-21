@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
@@ -13,17 +13,29 @@ import { useUserProfile } from './hooks/useUserProfile';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Toaster } from 'react-hot-toast';
+import { auth } from './config/firebase';
 
 const RoleBasedRoute = ({ children }: { children: React.ReactNode }) => {
   const { currentUser } = useAuth();
   const { profile, isLoading, error } = useUserProfile(currentUser?.uid);
+  const navigate = useNavigate();
+
+  const handleReturnToLogin = async () => {
+    try {
+      await auth.signOut();
+      navigate('/login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast.error('Error signing out. Please try again.');
+    }
+  };
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="flex flex-col items-center">
           <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
-          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+          <p className="mt-4 text-gray-600">Loading your profile...</p>
         </div>
       </div>
     );
@@ -32,13 +44,14 @@ const RoleBasedRoute = ({ children }: { children: React.ReactNode }) => {
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="flex flex-col items-center">
-          <p className="text-red-600">Error loading dashboard. Please try again later.</p>
+        <div className="flex flex-col items-center text-center">
+          <p className="text-red-600 mb-2">Profile not found. Please try logging in again.</p>
+          <p className="text-gray-600 mb-4">If you just created your account, this might take a few seconds.</p>
           <button
-            onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            onClick={handleReturnToLogin}
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
           >
-            Retry
+            Return to Login
           </button>
         </div>
       </div>
@@ -48,14 +61,12 @@ const RoleBasedRoute = ({ children }: { children: React.ReactNode }) => {
   if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="flex flex-col items-center">
-          <p className="text-red-600">Profile not found. Please try logging in again.</p>
+        <div className="flex flex-col items-center text-center">
+          <p className="text-red-600 mb-2">Unable to load your profile.</p>
+          <p className="text-gray-600 mb-4">Please try logging in again or contact support if the issue persists.</p>
           <button
-            onClick={() => {
-              auth.signOut();
-              window.location.href = '/login';
-            }}
-            className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            onClick={handleReturnToLogin}
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
           >
             Return to Login
           </button>
@@ -67,14 +78,12 @@ const RoleBasedRoute = ({ children }: { children: React.ReactNode }) => {
   if (!profile.userType) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="flex flex-col items-center">
-          <p className="text-red-600">User type not set. Please contact support.</p>
+        <div className="flex flex-col items-center text-center">
+          <p className="text-red-600 mb-2">User type not set.</p>
+          <p className="text-gray-600 mb-4">Please contact support to resolve this issue.</p>
           <button
-            onClick={() => {
-              auth.signOut();
-              window.location.href = '/login';
-            }}
-            className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            onClick={handleReturnToLogin}
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
           >
             Return to Login
           </button>

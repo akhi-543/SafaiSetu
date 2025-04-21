@@ -5,7 +5,7 @@ import { useUserProfile } from '../hooks/useUserProfile';
 import { useScheduledPickups } from '../hooks/useScheduledPickups';
 import { usePickupAssignment } from '../hooks/usePickupAssignment';
 import { usePickupCompletion } from '../hooks/usePickupCompletion';
-import { Trash2, Calendar, LogOut, MapPin, Loader2, CheckCircle2, User, Phone, Mail, Clock, Star, PackageSearch, ClipboardCheck, PackageX } from 'lucide-react';
+import { Trash2, Calendar, LogOut, MapPin, Loader2, CheckCircle2, User, Phone, Mail, Clock, Star, PackageSearch, ClipboardCheck, PackageX, Power } from 'lucide-react';
 import { auth } from '../config/firebase';
 import { format } from 'date-fns';
 import { toast } from 'react-hot-toast';
@@ -13,10 +13,13 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Textarea } from '../components/ui/textarea';
+import { Switch } from '../components/ui/switch';
+import { Label } from '../components/ui/label';
+import { Link } from 'react-router-dom';
 
 export const PickerDashboardPage = () => {
   const { currentUser } = useAuth();
-  const { profile, isLoading: profileLoading } = useUserProfile(currentUser?.uid);
+  const { profile, isLoading: profileLoading, updateAvailability, isUpdating } = useUserProfile(currentUser?.uid);
   const { pickups, isLoading: pickupsLoading } = useScheduledPickups(currentUser?.uid);
   const { isAssigning, assignPickup } = usePickupAssignment();
   const { completePickup, submitPickerRating, isCompleting, isRating } = usePickupCompletion();
@@ -33,6 +36,12 @@ export const PickerDashboardPage = () => {
     } catch (error) {
       console.error('Error logging out:', error);
       toast.error('Failed to log out');
+    }
+  };
+
+  const handleAvailabilityToggle = async () => {
+    if (profile) {
+      await updateAvailability(!profile.isAvailable);
     }
   };
 
@@ -100,15 +109,59 @@ export const PickerDashboardPage = () => {
     <div className="min-h-screen bg-gradient-to-b from-green-50 via-white to-green-50 p-6">
       <div className="max-w-5xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-green-800 drop-shadow-sm">Picker Dashboard</h1>
-          <Button
-            onClick={handleLogout}
-            variant="destructive"
-            className="flex items-center space-x-2 bg-red-500 hover:bg-red-600 shadow-lg hover:shadow-xl transition-all duration-200"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Logout</span>
-          </Button>
+          <h1 className="text-4xl font-bold text-green-800 drop-shadow-sm">SafaiSetu Dashboard</h1>
+          <div className="flex items-center space-x-6">
+            {/* Availability Toggle */}
+            <div className="flex items-center space-x-4 bg-white px-6 py-3 rounded-lg shadow-lg transition-all duration-200">
+              <div className="flex items-center space-x-3">
+                <Switch
+                  id="availability"
+                  checked={profile?.isAvailable || false}
+                  onCheckedChange={handleAvailabilityToggle}
+                  disabled={isUpdating}
+                  className={`
+                    ${profile?.isAvailable ? 'bg-green-700' : 'bg-gray-200'} 
+                    hover:bg-green-600 
+                    data-[state=checked]:bg-green-700
+                    transition-all duration-200
+                    [&>span]:bg-white
+                    [&>span]:shadow-[0_2px_4px_rgba(0,0,0,0.2)]
+                    [&>span]:hover:shadow-[0_4px_8px_rgba(0,0,0,0.25)]
+                    [&>span]:transition-all
+                    [&>span]:data-[state=checked]:bg-green-50
+                    [&>span]:data-[state=checked]:hover:bg-green-100
+                    scale-125
+                  `}
+                />
+                <Label 
+                  htmlFor="availability" 
+                  className={`
+                    font-medium text-base
+                    ${profile?.isAvailable ? 'text-green-700' : 'text-gray-600'}
+                    drop-shadow-sm
+                    transition-colors duration-200
+                  `}
+                >
+                  {profile?.isAvailable ? 'Available' : 'Unavailable'}
+                </Label>
+              </div>
+              {isUpdating && <Loader2 className="w-4 h-4 animate-spin text-green-600" />}
+            </div>
+            <Link
+              to="/profile"
+              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-md hover:shadow-lg transition-all duration-200"
+            >
+              <User className="w-4 h-4 mr-2" />
+              My Profile
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-md hover:shadow-lg transition-all duration-200"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </button>
+          </div>
         </div>
 
         {/* Profile Section */}
@@ -155,9 +208,21 @@ export const PickerDashboardPage = () => {
             <PackageSearch className="w-6 h-6 mr-3 text-green-600 drop-shadow-sm" />
             Available Pickups
           </h2>
-          {pendingPickups.length === 0 ? (
+
+          {!profile?.isAvailable ? (
+            <div className="bg-yellow-50 rounded-lg p-12 text-center border border-yellow-100">
+              <Power className="h-16 w-16 mx-auto text-yellow-400 mb-4" />
+              <p className="text-lg text-yellow-800 font-medium mb-2">You're Currently Unavailable</p>
+              <p className="text-gray-600">Toggle your availability above to see and accept new pickup requests.</p>
+            </div>
+          ) : pickupsLoading ? (
+            <div className="flex flex-col items-center justify-center p-12 text-green-600">
+              <Loader2 className="h-12 w-12 animate-spin mb-4" />
+              <p className="text-lg">Loading available pickups...</p>
+            </div>
+          ) : pendingPickups.length === 0 ? (
             <div className="bg-green-50/50 rounded-lg p-12 text-center border border-green-100">
-              <PackageX className="h-16 w-16 mx-auto text-green-400 mb-4" />
+              <Clock className="h-16 w-16 mx-auto text-green-400 mb-4" />
               <p className="text-lg text-green-800 font-medium mb-2">No Available Pickups</p>
               <p className="text-gray-600">There are no pending waste pickups in your area at the moment.</p>
               <p className="text-sm text-green-600 mt-4">Check back later for new pickup requests!</p>

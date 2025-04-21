@@ -16,22 +16,36 @@ export const LoginPage = () => {
     setIsLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      if (!email || !password) {
+        throw new Error('Please fill in all fields');
+      }
+
+      console.log('Attempting login with:', { email }); // Don't log password
+      await signInWithEmailAndPassword(auth, email.trim(), password);
+      console.log('Login successful');
       toast.success('Logged in successfully!');
       navigate('/dashboard');
     } catch (error: any) {
       console.error('Error during login:', error);
       let errorMessage = 'Failed to login. Please try again.';
       
+      // Enhanced error messages
       if (error.code === 'auth/user-not-found') {
-        errorMessage = 'No account found with this email.';
+        errorMessage = 'No account found with this email. Please check your email or sign up.';
       } else if (error.code === 'auth/wrong-password') {
-        errorMessage = 'Incorrect password.';
+        errorMessage = 'Incorrect password. Please try again.';
       } else if (error.code === 'auth/invalid-email') {
         errorMessage = 'Please enter a valid email address.';
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = 'Network error. Please check your internet connection.';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed attempts. Please try again later.';
+      } else if (error.message) {
+        errorMessage = error.message;
       }
       
       toast.error(errorMessage);
+      console.log('Login error details:', { code: error.code, message: error.message });
     } finally {
       setIsLoading(false);
     }

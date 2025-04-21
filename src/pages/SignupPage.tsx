@@ -17,46 +17,53 @@ export const SignupPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSignup = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // Create user in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+      // Create user account
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email.trim(),
+        password
+      );
 
-      // Update user display name
-      await updateProfile(user, {
-        displayName: name
+      // Update user profile with name
+      await updateProfile(userCredential.user, {
+        displayName: name.trim()
       });
 
-      // Create user profile in Firestore
-      const userProfile = {
-        userId: user.uid,
+      // Create user profile
+      const profileData = {
         name: name.trim(),
         email: email.trim(),
         phone: phone.trim(),
         address: address.trim(),
         userType,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
-      await setDoc(doc(db, 'users', user.uid), userProfile);
+      // Only add isAvailable field for pickers
+      if (userType === 'picker') {
+        profileData['isAvailable'] = false;
+      }
+
+      await setDoc(doc(db, 'users', userCredential.user.uid), profileData);
 
       toast.success('Account created successfully!');
       navigate('/dashboard');
     } catch (error: any) {
-      console.error('Error during signup:', error);
+      console.error('Error signing up:', error);
       let errorMessage = 'Failed to create account. Please try again.';
       
       if (error.code === 'auth/email-already-in-use') {
-        errorMessage = 'This email is already registered. Please use a different email or login.';
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = 'Password should be at least 6 characters long.';
+        errorMessage = 'An account with this email already exists.';
       } else if (error.code === 'auth/invalid-email') {
         errorMessage = 'Please enter a valid email address.';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'Password should be at least 6 characters.';
       }
       
       toast.error(errorMessage);
@@ -111,7 +118,7 @@ export const SignupPage = () => {
               </p>
             </div>
 
-            <form onSubmit={isLogin ? handleLogin : handleSignup} className="space-y-6">
+            <form onSubmit={isLogin ? handleLogin : handleSubmit} className="space-y-6">
               {!isLogin && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-1">
