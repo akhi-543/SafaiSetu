@@ -19,6 +19,7 @@ import { Link } from 'react-router-dom';
 import { Input } from '../components/ui/input';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { Modal } from '../components/ui/modal';
 
 export const PickerDashboardPage = () => {
   const { currentUser } = useAuth();
@@ -32,6 +33,7 @@ export const PickerDashboardPage = () => {
   const [selectedComment, setSelectedComment] = useState<{ [key: string]: string }>({});
   const [pincode, setPincode] = useState('');
   const [savingPincode, setSavingPincode] = useState(false);
+  const [pickupToComplete, setPickupToComplete] = useState<string | null>(null);
 
   const handleLogout = async () => {
     try {
@@ -106,6 +108,21 @@ export const PickerDashboardPage = () => {
       toast.error('Failed to save pincode');
     } finally {
       setSavingPincode(false);
+    }
+  };
+
+  const handleCompletePickup = (pickupId: string) => {
+    setPickupToComplete(pickupId);
+  };
+
+  const handleConfirmComplete = async () => {
+    if (!pickupToComplete) return;
+    
+    try {
+      await completePickup(pickupToComplete);
+      setPickupToComplete(null);
+    } catch (error) {
+      // Error is handled by the hook
     }
   };
 
@@ -393,7 +410,7 @@ export const PickerDashboardPage = () => {
                       <Button
                         variant="outline"
                         className="w-full mt-2 border-green-600 text-green-600 hover:bg-green-50 shadow-md hover:shadow-lg transition-all duration-200"
-                        onClick={() => completePickup(pickup.id)}
+                        onClick={() => handleCompletePickup(pickup.id)}
                         disabled={isCompleting === pickup.id}
                       >
                         {isCompleting === pickup.id ? (
@@ -532,6 +549,28 @@ export const PickerDashboardPage = () => {
           )}
         </section>
       </div>
+
+      {/* Complete Confirmation Modal */}
+      <Modal
+        isOpen={!!pickupToComplete}
+        onClose={() => setPickupToComplete(null)}
+        title="Complete Pickup"
+        primaryAction={{
+          label: "Confirm Complete",
+          onClick: handleConfirmComplete,
+          variant: "default"
+        }}
+        secondaryAction={{
+          label: "Cancel",
+          onClick: () => setPickupToComplete(null),
+          variant: "outline"
+        }}
+      >
+        <div className="space-y-4">
+          <p className="text-gray-700">Are you sure you want to mark this pickup as completed?</p>
+          <p className="text-sm text-gray-500">This will move the pickup to your completed pickups list.</p>
+        </div>
+      </Modal>
     </div>
   );
 }; 

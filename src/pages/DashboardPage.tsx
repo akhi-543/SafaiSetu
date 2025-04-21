@@ -17,6 +17,7 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Textarea } from '../components/ui/textarea';
+import { Modal } from '../components/ui/modal';
 
 interface PickupLocation {
     lat: number;
@@ -48,6 +49,8 @@ export const DashboardPage = () => {
 
   const [selectedRating, setSelectedRating] = useState<{ [key: string]: number }>({});
   const [selectedComment, setSelectedComment] = useState<{ [key: string]: string }>({});
+
+  const [pickupToCancel, setPickupToCancel] = useState<string | null>(null);
 
   const wasteTypes = ['Plastic', 'Paper', 'Metal', 'Glass'];
   const quantities = ['Small Bag', 'Medium Bag', 'Large Bag'];
@@ -140,6 +143,21 @@ export const DashboardPage = () => {
       delete newState[pickupId];
       return newState;
     });
+  };
+
+  const handleCancelPickup = (pickupId: string) => {
+    setPickupToCancel(pickupId);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!pickupToCancel) return;
+    
+    try {
+      await cancelPickup(pickupToCancel);
+      setPickupToCancel(null);
+    } catch (error) {
+      // Error is handled by the hook
+    }
   };
 
   if (profileLoading || pickupsLoading) {
@@ -369,7 +387,7 @@ export const DashboardPage = () => {
                             <Button
                               variant="destructive"
                               className="w-full mt-2 shadow-md hover:shadow-lg transition-all duration-200"
-                              onClick={() => cancelPickup(pickup.id)}
+                              onClick={() => handleCancelPickup(pickup.id)}
                               disabled={isCancelling === pickup.id}
                             >
                               {isCancelling === pickup.id ? (
@@ -506,6 +524,28 @@ export const DashboardPage = () => {
           )}
         </div>
       </div>
+
+      {/* Cancel Confirmation Modal */}
+      <Modal
+        isOpen={!!pickupToCancel}
+        onClose={() => setPickupToCancel(null)}
+        title="Cancel Pickup"
+        primaryAction={{
+          label: "Confirm Cancel",
+          onClick: handleConfirmCancel,
+          variant: "destructive"
+        }}
+        secondaryAction={{
+          label: "Keep Pickup",
+          onClick: () => setPickupToCancel(null),
+          variant: "outline"
+        }}
+      >
+        <div className="space-y-4">
+          <p className="text-gray-700">Are you sure you want to cancel this pickup?</p>
+          <p className="text-sm text-gray-500">This action cannot be undone.</p>
+        </div>
+      </Modal>
     </div>
   );
 };
