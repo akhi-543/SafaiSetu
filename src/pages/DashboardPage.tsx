@@ -172,6 +172,7 @@ export const DashboardPage = () => {
   }
 
   const pendingPickups = pickups.filter(pickup => pickup.status === 'Pending');
+  const assignedPickups = pickups.filter(pickup => pickup.status === 'Assigned');
   const completedPickups = pickups.filter(pickup => pickup.status === 'Completed');
 
   return (
@@ -345,42 +346,42 @@ export const DashboardPage = () => {
               </Button>
             </div>
           ) : (
-            <div className="space-y-8">
+            <div className="space-y-12">
               {/* Pending Pickups Section */}
               <section>
-                <h3 className="text-xl font-semibold mb-6 text-green-800 drop-shadow-sm">Pending Pickups</h3>
+                <h3 className="text-xl font-semibold mb-6 text-yellow-800 drop-shadow-sm">Pending Pickups</h3>
                 {pendingPickups.length === 0 ? (
-                  <div className="bg-green-50/50 rounded-lg p-8 text-center border border-green-100">
-                    <PackageX className="h-12 w-12 mx-auto text-green-400 mb-3" />
+                  <div className="bg-yellow-50/50 rounded-lg p-8 text-center border border-yellow-100">
+                    <PackageX className="h-12 w-12 mx-auto text-yellow-400 mb-3" />
                     <p className="text-gray-600">No pending pickups at the moment</p>
                   </div>
                 ) : (
                   <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {pendingPickups.map(pickup => (
-                      <Card key={pickup.id} className="bg-white border border-green-100 shadow-lg hover:shadow-xl transition-all duration-200 hover:border-green-200 transform hover:-translate-y-1">
-                        <CardHeader className="border-b border-green-100 bg-gradient-to-r from-green-50 to-white">
+                      <Card key={pickup.id} className="bg-white border border-yellow-100 shadow-lg hover:shadow-xl transition-all duration-200 hover:border-yellow-200 transform hover:-translate-y-1">
+                        <CardHeader className="border-b border-yellow-100 bg-gradient-to-r from-yellow-50 to-white">
                           <CardTitle className="flex items-center justify-between">
-                            <span className="text-green-800 font-semibold">Pickup Request</span>
+                            <span className="text-yellow-800 font-semibold">Pickup Request</span>
                             <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 hover:bg-yellow-200 shadow-sm">Pending</Badge>
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="pt-6">
-            <div className="space-y-4">
+                          <div className="space-y-4">
                             <div className="flex items-center text-sm text-gray-600">
-                              <Calendar className="w-4 h-4 mr-3 text-green-600" />
+                              <Calendar className="w-4 h-4 mr-3 text-yellow-600" />
                               {pickup.pickupDate ? format(pickup.pickupDate.toDate(), 'MMM d, yyyy') : 'Date not set'}
                             </div>
                             <div className="flex items-start text-sm text-gray-600">
-                              <MapPin className="w-4 h-4 mr-3 text-green-600 mt-1 flex-shrink-0" />
+                              <MapPin className="w-4 h-4 mr-3 text-yellow-600 mt-1 flex-shrink-0" />
                               <span>{pickup.location?.address || pickup.userAddress || 'Location not specified'}</span>
                             </div>
-                            <div className="text-sm border-t border-green-100 pt-4 space-y-2">
+                            <div className="text-sm border-t border-yellow-100 pt-4 space-y-2">
                               <div>
-                                <span className="font-medium text-green-700">Waste Types: </span>
+                                <span className="font-medium text-yellow-700">Waste Types: </span>
                                 <span className="text-gray-600">{pickup.wasteTypes.join(', ')}</span>
                               </div>
-                    <div>
-                                <span className="font-medium text-green-700">Quantity: </span>
+                              <div>
+                                <span className="font-medium text-yellow-700">Quantity: </span>
                                 <span className="text-gray-600">{pickup.quantity}</span>
                               </div>
                             </div>
@@ -402,13 +403,61 @@ export const DashboardPage = () => {
                                 </>
                               )}
                             </Button>
-                      </div>
+                          </div>
                         </CardContent>
                       </Card>
                     ))}
-                    </div>
+                  </div>
                 )}
               </section>
+              <hr className="my-8 border-t border-green-100" />
+
+              {/* Assigned Pickups Section */}
+              <section>
+                <h3 className="text-xl font-semibold mb-6 text-blue-800 drop-shadow-sm">Assigned Pickups</h3>
+                {assignedPickups.length === 0 ? (
+                  <div className="bg-blue-50/50 rounded-lg p-8 text-center border border-blue-100">
+                    <Package className="h-12 w-12 mx-auto text-blue-400 mb-3" />
+                    <p className="text-gray-600">No assigned pickups at the moment</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {assignedPickups.map(pickup => (
+                      <Card key={pickup.id} className="bg-white border border-blue-100 shadow-lg hover:shadow-xl transition-all duration-200 hover:border-blue-200 transform hover:-translate-y-1">
+                        <CardHeader className="border-b border-blue-100 bg-gradient-to-r from-blue-50 to-white">
+                          <CardTitle className="flex items-center justify-between">
+                            <span className="text-blue-800 font-semibold">Pickup Request</span>
+                            <Badge variant="default" className="bg-blue-100 text-blue-700 hover:bg-blue-200 shadow-sm">Assigned</Badge>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-6">
+                          <div className="space-y-4">
+                            <div className="flex items-center text-sm text-gray-600">
+                              <Calendar className="w-4 h-4 mr-3 text-blue-600" />
+                              {pickup.pickupDate ? format(pickup.pickupDate.toDate(), 'MMM d, yyyy') : 'Date not set'}
+                            </div>
+                            <div className="flex items-start text-sm text-gray-600">
+                              <MapPin className="w-4 h-4 mr-3 text-blue-600 mt-1 flex-shrink-0" />
+                              <span>{pickup.location?.address || pickup.userAddress || 'Location not specified'}</span>
+                            </div>
+                            <div className="text-sm border-t border-blue-100 pt-4 space-y-2">
+                              <div>
+                                <span className="font-medium text-blue-700">Waste Types: </span>
+                                <span className="text-gray-600">{pickup.wasteTypes.join(', ')}</span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-blue-700">Quantity: </span>
+                                <span className="text-gray-600">{pickup.quantity}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </section>
+              <hr className="my-8 border-t border-green-100" />
 
               {/* Completed Pickups Section */}
               <section>
@@ -446,7 +495,7 @@ export const DashboardPage = () => {
                               <div>
                                 <span className="font-medium text-green-700">Quantity: </span>
                                 <span className="text-gray-600">{pickup.quantity}</span>
-                      </div>
+                              </div>
                             </div>
                             {!pickup.generatorRating && (
                               <div className="mt-4 space-y-4 border-t border-green-100 pt-4">
@@ -508,15 +557,15 @@ export const DashboardPage = () => {
                                     <div className="mt-2 text-center">
                                       <p className="text-sm text-gray-500 font-medium">Your Comment</p>
                                       <p className="text-sm text-green-600 mt-1 italic">"{pickup.generatorComment}"</p>
-                    </div>
-                  )}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </CardContent>
                       </Card>
-              ))}
+                    ))}
                   </div>
                 )}
               </section>

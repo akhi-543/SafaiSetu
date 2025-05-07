@@ -182,4 +182,4 @@ export const useScheduledPickups = (userId: string | undefined) => {
     addPickup,
     cancelPickup
   };
-}; 
+};
