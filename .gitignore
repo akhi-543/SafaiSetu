@@ -24,3 +24,5 @@ dist-ssr
 *.sw?
 
 llm.prompt
+
+.bolt/
