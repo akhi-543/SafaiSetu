@@ -44,16 +44,25 @@ The platform provides distinct functionalities for two main user roles:
 
 ## Architecture & Design
 
-*(Placeholder for Architecture Diagram - e.g., a high-level overview of components like Frontend, Firebase Auth, Firestore, and their interactions.)*
+![Architecture Diagram](file:///E:/Downloads/Editor%20_%20Mermaid%20Chart-2025-04-26-050924.png)
 
-*(Placeholder for Module Connectivity Diagram - e.g., how different frontend modules/contexts/hooks interact.)*
+![Connectivity Diagram](file:///E:/Downloads/Editor%20_%20Mermaid%20Chart-2025-04-26-053254.png)
 
-*(Placeholder for Dataflow Diagram - e.g., illustrating data flow for key user actions like scheduling a pickup or a picker accepting a job.)*
+![DataFlow Diagram](file:///E:/Downloads/mermaid-ai-diagram-2025-04-26-054612.png)
 
 ## Working Screenshots
 
-*(Placeholder for a few key screenshots of the application, e.g., Generator Dashboard, Picker Dashboard, Schedule Pickup Form, etc.)*
+### Generator Dashboard
+![Generator Dashboard](file:///D:/Sem-4/SRP/WhatsApp%20Image%202025-05-07%20at%2019.28.41_1320c2a1.jpg)
 
+![Generator Dashboard](file:///D:/Sem-4/SRP/WhatsApp%20Image%202025-05-07%20at%2019.28.59_de7810b9.jpg)
+
+![Generator Dashboard](file:///D:/Sem-4/SRP/WhatsApp%20Image%202025-05-07%20at%2019.29.17_6fc4c0e7.jpg)
+
+### Picker Dashboard
+![Generator Dashboard](file:///D:/Sem-4/SRP/WhatsApp%20Image%202025-05-07%20at%2019.29.37_344a9d45.jpg)
+
+![Generator Dashboard](file:///D:/Sem-4/SRP/WhatsApp%20Image%202025-05-07%20at%2019.29.57_e9a492d3.jpg)
 ## Getting Started
 
 To get a local copy up and running, follow these simple steps.
@@ -109,35 +118,6 @@ In the project directory, you can run:
 *   `npm run build`: Builds the app for production to the `dist` folder.
 *   `npm run lint`: Lints the codebase using ESLint.
 *   `npm run preview`: Serves the production build locally for preview.
-
-## Project Structure (Overview)
-
-\`\`\`
-/
-├── public/             # Static assets
-├── src/
-│   ├── components/     # Reusable UI components (general, UI primitives)
-│   ├── config/         # Firebase configuration
-│   ├── contexts/       # React Context API for global state (e.g., Auth)
-│   ├── hooks/          # Custom React Hooks for business logic and Firebase interactions
-│   ├── lib/            # Utility functions
-│   ├── pages/          # Page-level components (routed components)
-│   ├── App.tsx         # Main application component with routing
-│   ├── main.tsx        # Entry point of the application
-│   └── index.css       # Global styles
-├── .env                # Environment variables (ignored by Git)
-├── .env.example        # Example environment variables
-├── .eslintrc.cjs       # ESLint configuration
-├── .gitignore          # Specifies intentionally untracked files that Git should ignore
-├── firebase.rules      # Firestore security rules
-├── index.html          # Main HTML page
-├── LICENSE             # Project License
-├── package.json        # Project dependencies and scripts
-├── postcss.config.js   # PostCSS configuration
-├── tailwind.config.js  # Tailwind CSS configuration
-├── tsconfig.json       # TypeScript compiler options
-└── vite.config.ts      # Vite configuration
-\`\`\`
 
 ## License
 
