@@ -1,4 +1,4 @@
-# SafaiSetu - Waste Management & Picker Empowerment Web App
+# SafaiSetu
 
 SafaiSetu is a web application designed to streamline urban waste management in India by connecting waste generators directly with informal waste pickers, aiming to improve recycling rates and empower the picker community with fair opportunities.
 
@@ -44,25 +44,25 @@ The platform provides distinct functionalities for two main user roles:
 
 ## Architecture & Design
 
-![Architecture Diagram](file:///E:/Downloads/Editor%20_%20Mermaid%20Chart-2025-04-26-050924.png)
+![Architecture Diagram](https://github.com/akhi-543/SafaiSetu/blob/main/Img_repo/Editor%20_%20Mermaid%20Chart-2025-04-26-050924.png)
 
-![Connectivity Diagram](file:///E:/Downloads/Editor%20_%20Mermaid%20Chart-2025-04-26-053254.png)
+![Connectivity Diagram](https://github.com/akhi-543/SafaiSetu/blob/main/Img_repo/Editor%20_%20Mermaid%20Chart-2025-04-26-053254.png)
 
-![DataFlow Diagram](file:///E:/Downloads/mermaid-ai-diagram-2025-04-26-054612.png)
+![DataFlow Diagram](https://github.com/akhi-543/SafaiSetu/blob/main/Img_repo/mermaid-ai-diagram-2025-04-26-054612.png)
 
 ## Working Screenshots
 
 ### Generator Dashboard
-![Generator Dashboard](file:///D:/Sem-4/SRP/WhatsApp%20Image%202025-05-07%20at%2019.28.41_1320c2a1.jpg)
+![Generator Dashboard](https://github.com/akhi-543/SafaiSetu/blob/main/Img_repo/WhatsApp%20Image%202025-05-07%20at%2019.28.41_1320c2a1.jpg)
 
-![Generator Dashboard](file:///D:/Sem-4/SRP/WhatsApp%20Image%202025-05-07%20at%2019.28.59_de7810b9.jpg)
+![Generator Dashboard](https://github.com/akhi-543/SafaiSetu/blob/main/Img_repo/WhatsApp%20Image%202025-05-07%20at%2019.28.59_de7810b9.jpg)
 
-![Generator Dashboard](file:///D:/Sem-4/SRP/WhatsApp%20Image%202025-05-07%20at%2019.29.17_6fc4c0e7.jpg)
+![Generator Dashboard](https://github.com/akhi-543/SafaiSetu/blob/main/Img_repo/WhatsApp%20Image%202025-05-07%20at%2019.29.17_6fc4c0e7.jpg)
 
 ### Picker Dashboard
-![Generator Dashboard](file:///D:/Sem-4/SRP/WhatsApp%20Image%202025-05-07%20at%2019.29.37_344a9d45.jpg)
+![Generator Dashboard](https://github.com/akhi-543/SafaiSetu/blob/main/Img_repo/WhatsApp%20Image%202025-05-07%20at%2019.29.37_344a9d45.jpg)
 
-![Generator Dashboard](file:///D:/Sem-4/SRP/WhatsApp%20Image%202025-05-07%20at%2019.29.57_e9a492d3.jpg)
+![Generator Dashboard](https://github.com/akhi-543/SafaiSetu/blob/main/Img_repo/WhatsApp%20Image%202025-05-07%20at%2019.29.57_e9a492d3.jpg)
 ## Getting Started
 
 To get a local copy up and running, follow these simple steps.
